@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LexData — Arquitectura de Microservicios</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:#0c0e16;
+  color:#e2e8f0;
+  min-height:100vh;
+  padding:28px 24px;
+  display:flex;
+  gap:20px;
+  align-items:flex-start;
+}
+.diagram{flex:1;min-width:0}
+.side-panel{
+  width:340px;
+  flex-shrink:0;
+  background:#13161f;
+  border:1px solid #252840;
+  border-radius:12px;
+  padding:20px;
+  position:sticky;
+  top:28px;
+  max-height:calc(100vh - 56px);
+  overflow-y:auto;
+  display:none;
+  scrollbar-width:thin;
+  scrollbar-color:#252840 transparent;
+}
+.side-panel.open{display:block}
+
+/* ── title ── */
+.diagram-title{text-align:center;margin-bottom:24px}
+.diagram-title .eyebrow{font-size:10px;color:#3d4263;letter-spacing:.14em;text-transform:uppercase;margin-bottom:5px}
+.diagram-title h1{font-size:17px;font-weight:600;color:#e2e8f0}
+.diagram-title .hint{font-size:11px;color:#3d4263;margin-top:4px}
+
+/* ── layers ── */
+.layer{display:flex;gap:8px;justify-content:center}
+.arrow-row{display:flex;justify-content:center;padding:7px 0;color:#2d3148;font-size:14px}
+
+/* ── nodes ── */
+.node{
+  cursor:pointer;
+  border-radius:8px;
+  padding:11px 14px;
+  text-align:center;
+  border:1px solid;
+  position:relative;
+  user-select:none;
+  transition:filter .12s, transform .12s;
+}
+.node:hover{filter:brightness(1.2);transform:translateY(-1px)}
+.node.active{filter:brightness(1.3);transform:translateY(-1px);outline:1.5px solid #4a5fdb}
+
+.node-title{font-size:13px;font-weight:500;line-height:1.3}
+.node-subtitle{font-size:10px;opacity:.55;margin-top:3px;line-height:1.4}
+
+/* colors */
+.n-client {background:#131520;border-color:#252840;color:#64748b;flex:1}
+.n-gateway{background:#0f2040;border-color:#1d4a8a;color:#7eb8f5;flex:1;padding:14px 18px}
+.n-bus    {background:#0f2040;border-color:#1d4a8a;color:#7eb8f5;flex:1;padding:14px 18px}
+.n-green  {background:#071d13;border-color:#145238;color:#34d974}
+.n-red    {background:#1a0808;border-color:#6b1f1f;color:#f87171}
+.n-amber  {background:#1a1004;border-color:#7a4f0d;color:#fbbf24}
+.n-db     {background:#131520;border-color:#252840;color:#94a3b8;flex:1}
+
+/* microservices wrapper */
+.ms-wrap{border:1px dashed #252840;border-radius:12px;padding:16px 14px}
+.ms-label{font-size:10px;color:#2d3148;text-align:center;margin-bottom:12px;letter-spacing:.04em}
+.ms-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+
+/* badges */
+.warn-dot{
+  position:absolute;top:-5px;right:-5px;
+  background:#f59e0b;color:#1a0c00;
+  border-radius:50%;width:15px;height:15px;
+  font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid #0c0e16;
+}
+.star-dot{
+  position:absolute;top:-5px;left:-5px;
+  background:#dc2626;color:#fff;
+  border-radius:50%;width:15px;height:15px;
+  font-size:8px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid #0c0e16;
+}
+
+/* legend */
+.legend{display:flex;gap:18px;justify-content:center;margin-top:18px;flex-wrap:wrap}
+.legend span{font-size:10px;color:#3d4263;display:flex;align-items:center;gap:5px}
+.l-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* ── detail panel ── */
+.panel-close{
+  position:absolute;top:12px;right:14px;
+  background:none;border:none;color:#3d4263;
+  font-size:14px;cursor:pointer;line-height:1;padding:3px;
+}
+.panel-close:hover{color:#94a3b8}
+
+.p-eyebrow{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
+.p-title{font-size:17px;font-weight:600;color:#e2e8f0;line-height:1.2;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #1e2235}
+
+.p-section{margin-bottom:16px}
+.p-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#3d4263;margin-bottom:5px}
+.p-body{font-size:12.5px;color:#8899b0;line-height:1.65}
+.p-mono{font-size:11.5px;font-family:'SF Mono',Monaco,Consolas,monospace;color:#7eb8f5;line-height:1.7;background:#0a0d15;padding:8px 10px;border-radius:6px}
+
+.p-list{list-style:none}
+.p-list li{font-size:12px;color:#8899b0;padding:3px 0 3px 14px;position:relative;line-height:1.5}
+.p-list li::before{content:'·';position:absolute;left:2px;color:#3d4263}
+
+.order-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11.5px;color:#5a6880;
+  padding:4px 10px;
+  background:#0d1018;border:1px solid #1e2235;border-radius:6px;
+  margin-bottom:14px;
+}
+.order-num{
+  width:20px;height:20px;border-radius:50%;
+  background:#1e2235;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:#e2e8f0;
+}
+
+.issue-box{
+  border-radius:7px;padding:10px 12px;
+  font-size:11.5px;line-height:1.6;
+  margin-top:7px;
+}
+.issue-critical{background:#180808;border:1px solid #6b1f1f;color:#f87171}
+.issue-warning {background:#17120a;border:1px solid #7a4f0d;color:#fbbf24}
+.issue-title{font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;opacity:.8}
+
+@media(max-width:780px){
+  body{flex-direction:column}
+  .side-panel{width:100%;position:static;max-height:none}
+  .ms-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="diagram">
+
+  <div class="diagram-title">
+    <div class="eyebrow">LexData · Nicho Familia · Cali, Valle del Cauca</div>
+    <h1>Arquitectura de Microservicios</h1>
+    <div class="hint">Haz clic en cualquier bloque para explorar en profundidad</div>
+  </div>
+
+  <!-- Clients -->
+  <div class="layer">
+    <div class="node n-client" onclick="show('web-app',this)">
+      <div class="node-title">Web App</div>
+    </div>
+    <div class="node n-client" onclick="show('mobile-app',this)">
+      <div class="node-title">App móvil</div>
+    </div>
+    <div class="node n-client" onclick="show('api-client',this)">
+      <div class="node-title">API cliente</div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- Gateway -->
+  <div class="layer">
+    <div class="node n-gateway" onclick="show('gateway',this)">
+      <div class="node-title">API Gateway</div>
+      <div class="node-subtitle">Enrutamiento · JWT validation · Rate limiting · SSL termination</div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- Microservices -->
+  <div class="ms-wrap">
+    <div class="ms-label">Microservicios — despliegue independiente · base de datos por servicio</div>
+    <div class="ms-grid">
+      <div class="node n-green" onclick="show('auth',this)">
+        <div class="node-title">Autenticación</div>
+        <div class="node-subtitle">JWT · roles · permisos</div>
+      </div>
+      <div class="node n-green" onclick="show('casos',this)">
+        <div class="node-title">Gestión de casos</div>
+        <div class="node-subtitle">CRUD · vinculación familiar</div>
+      </div>
+      <div class="node n-red" onclick="show('ivf',this)" style="position:relative">
+        <span class="star-dot">★</span>
+        <span class="warn-dot">!</span>
+        <div class="node-title">Motor IVF</div>
+        <div class="node-subtitle">ML · correlación latente</div>
+      </div>
+      <div class="node n-amber" onclick="show('alertas',this)">
+        <div class="node-title">Motor de alertas</div>
+        <div class="node-subtitle">Vencimientos · escalados</div>
+      </div>
+      <div class="node n-green" onclick="show('analytics',this)" style="position:relative">
+        <span class="warn-dot">!</span>
+        <div class="node-title">Panel analítico</div>
+        <div class="node-subtitle">Mapas · KPIs · IVF</div>
+      </div>
+      <div class="node n-green" onclick="show('notif',this)">
+        <div class="node-title">Notificaciones</div>
+        <div class="node-subtitle">Email · push · PDF</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- Bus -->
+  <div class="layer">
+    <div class="node n-bus" onclick="show('bus',this)">
+      <div class="node-title">Bus de eventos</div>
+      <div class="node-subtitle">Kafka / RabbitMQ — comunicación asíncrona entre servicios</div>
+    </div>
+  </div>
+
+  <div class="arrow-row">↓</div>
+
+  <!-- Databases -->
+  <div class="layer">
+    <div class="node n-db" onclick="show('db-exp',this)">
+      <div class="node-title">DB Expedientes</div>
+      <div class="node-subtitle">PostgreSQL</div>
+    </div>
+    <div class="node n-db" onclick="show('db-pred',this)">
+      <div class="node-title">DB Predicción</div>
+      <div class="node-subtitle">MongoDB + Redis</div>
+    </div>
+    <div class="node n-db" onclick="show('db-anal',this)">
+      <div class="node-title">DB Analytics</div>
+      <div class="node-subtitle">ClickHouse / DW</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="l-dot" style="background:#dc2626"></span> Diferenciador competitivo (★)</span>
+    <span><span class="l-dot" style="background:#f59e0b"></span> Requiere atención (!)</span>
+    <span><span class="l-dot" style="background:#145238"></span> Servicios núcleo</span>
+    <span style="color:#2d3148">Orden de construcción: 1 → 6</span>
+  </div>
+
+</div>
+
+<!-- Detail panel -->
+<div class="side-panel" id="panel">
+  <button class="panel-close" onclick="closePanel()">✕</button>
+  <div id="panel-body"></div>
+</div>
+
+<script>
+const data = {
+  'web-app':{
+    eyebrow:'Cliente web',eyebrowColor:'#5a6880',
+    title:'Web App',
+    desc:'Interfaz para gestores, comisarías, consultorios y defensores de familia. Accede a todos los microservicios exclusivamente a través del API Gateway.',
+    resp:['Gestión de expedientes y casos activos','Visualización del Panel analítico y mapa de calor','Consulta del IVF por expediente','Recepción de alertas de vencimiento en tiempo real'],
+    tech:'React / Vue.js — consumidor exclusivo del API Gateway',
+    order:null,issues:[]
+  },
+  'mobile-app':{
+    eyebrow:'Cliente móvil',eyebrowColor:'#5a6880',
+    title:'App móvil',
+    desc:'Versión móvil para gestores en campo. Permite consultar expedientes y recibir notificaciones push de vencimientos procesales.',
+    resp:['Consulta de casos activos fuera de oficina','Notificaciones push de vencimientos','Acceso al historial del núcleo familiar'],
+    tech:'React Native / Flutter',
+    order:null,issues:[]
+  },
+  'api-client':{
+    eyebrow:'Acceso programático',eyebrowColor:'#5a6880',
+    title:'API cliente',
+    desc:'Punto de acceso para integraciones externas: SICOF, sistemas del ICBF y herramientas de terceros que consuman datos de LexData vía REST.',
+    resp:['Integración con SICOF para ingesta de expedientes','Consumo de predicciones IVF vía REST','Webhooks para eventos de alerta generados'],
+    tech:'REST JSON API con autenticación JWT (Bearer token)',
+    order:null,issues:[]
+  },
+  'gateway':{
+    eyebrow:'Infraestructura central',eyebrowColor:'#4a7ec4',
+    title:'API Gateway',
+    desc:'Único punto de entrada al sistema. Los servicios internos nunca se exponen directamente al exterior. Centraliza seguridad y control de tráfico.',
+    resp:[
+      'Enrutamiento: POST /api/casos → Gestión de casos; GET /api/ivf/:id → Motor IVF',
+      'Validación JWT centralizada — una sola vez, no en cada servicio',
+      'Rate limiting por organización (plan básico: 100 req/min; pro: ilimitado)',
+      'SSL termination — los servicios internos comunican en HTTP plano dentro de la red privada'
+    ],
+    tech:'Kong o Nginx con módulo de auth\nEn AWS: API Gateway + Lambda Authorizer',
+    order:null,issues:[]
+  },
+  'auth':{
+    eyebrow:'Servicio 1 de 6 · Mes 1',eyebrowColor:'#34d974',
+    title:'Autenticación',
+    desc:'Maneja todo lo relacionado con identidad. Ningún otro microservicio gestiona usuarios. Es el primer servicio que debe construirse porque bloquea el acceso al resto del sistema.',
+    resp:[
+      'Registro de organizaciones: comisarías, consultorios, despachos',
+      'Login y emisión de tokens JWT (RS256)',
+      'Gestión de roles: gestor, admin, supervisor ICBF',
+      'Revocación de sesiones y blacklist de tokens'
+    ],
+    tech:'Node.js · PostgreSQL\nbcrypt + JWT RS256',
+    order:{num:1,label:'Primero en construirse — bloquea todo lo demás'},
+    issues:[]
+  },
+  'casos':{
+    eyebrow:'Servicio 2 de 6 · Mes 1–3',eyebrowColor:'#34d974',
+    title:'Gestión de casos',
+    desc:'Núcleo transaccional del producto. Almacena todos los expedientes y maneja la vinculación automática entre casos del mismo núcleo familiar. Es el servicio más consultado.',
+    resp:[
+      'CRUD de expedientes: partes, tipo de proceso, estado procesal',
+      'Historial de audiencias, actuaciones y documentos adjuntos',
+      'Vinculación automática de expedientes por núcleo familiar o dirección',
+      'Publica eventos: caso.creado, caso.actualizado, caso.vinculado',
+      'Soporta 4 tipos de proceso: alimentos, VIF, sustancias, hurto patrimonial'
+    ],
+    tech:'Node.js + Express · PostgreSQL\nTablas: expediente, parte, tipo_proceso, vinculacion_familiar, evento_procesal',
+    order:{num:2,label:'Núcleo del producto — segundo en construirse'},
+    issues:[]
+  },
+  'ivf':{
+    eyebrow:'Servicio 5 de 6 · Mes 5–8',eyebrowColor:'#f87171',
+    title:'Motor IVF ★',
+    desc:'El diferenciador competitivo de LexData. Calcula el Índice de Vulnerabilidad Familiar (IVF) detectando la co-ocurrencia de los 4 tipos de proceso. Requiere datos históricos del piloto para entrenarse.',
+    resp:[
+      'Consume eventos caso.creado y caso.actualizado del bus',
+      'Calcula el IVF por expediente y por núcleo familiar',
+      'Expone predicciones vía API REST interna',
+      'Entrenamiento batch con datos históricos del piloto',
+      'Caché de predicciones en Redis para respuesta en milisegundos'
+    ],
+    tech:'Python (scikit-learn / XGBoost) · FastAPI\nMongoDB para feature vectors + Redis para caché',
+    order:{num:5,label:'Requiere datos reales del piloto para entrenar'},
+    issues:[
+      {type:'critical',title:'Datos insuficientes — solo hurtos disponibles',
+       body:'La tabla co-ocurrencia IVF contiene únicamente hurtos. Faltan las 3 dimensiones restantes del ciclo: VIF (Policía Nacional SIEDCO), alimentos (Rama Judicial) y sustancias (INMLCF). Los endpoints fallaron con errores 404 y 400 Bad Request.'},
+      {type:'critical',title:'Brecha de granularidad — datos anonimizados',
+       body:'Los datos públicos de datos.gov.co están anonimizados y agregados por municipio. No contienen nombres ni documentos de identidad. Es imposible vincular expedientes de una misma familia con estas fuentes.'},
+      {type:'warning',title:'Acción requerida antes de construir',
+       body:'Establecer conductos directos con las entidades piloto (comisarías, juzgados) para obtener exportaciones internas de SICOF con datos nominales. Sin datos privados reales, este servicio no puede entrenarse ni validarse.'}
+    ]
+  },
+  'alertas':{
+    eyebrow:'Servicio 3 de 6 · Mes 1–3',eyebrowColor:'#fbbf24',
+    title:'Motor de alertas',
+    desc:'Implementa las reglas procesales de vencimiento y escalamiento. Consume eventos del bus y genera notificaciones. Tercero en construirse porque entrega valor inmediato a las comisarías sin necesitar el Motor IVF.',
+    resp:[
+      'Alerta en día 12 hábil antes de vencimiento en procesos de alimentos',
+      'Alerta de medida de protección VIF próxima a vencer',
+      'Alerta de audiencias y términos procesales pendientes',
+      'Sugerencia automática del siguiente paso procesal por tipo de caso',
+      'Publica eventos alerta.generada hacia el servicio de Notificaciones'
+    ],
+    tech:'Node.js · Redis para scheduling\nSuscrito a: caso.creado, caso.actualizado del bus',
+    order:{num:3,label:'Valor inmediato para comisarías sin necesitar el IVF'},
+    issues:[]
+  },
+  'analytics':{
+    eyebrow:'Servicio 4 de 6 · Mes 1–3',eyebrowColor:'#34d974',
+    title:'Panel analítico',
+    desc:'Sirve los dashboards institucionales. Consulta una base de datos analítica separada — nunca toca la base transaccional — para no afectar el rendimiento operativo.',
+    resp:[
+      'Mapa de calor territorial de vulnerabilidad por municipio y circuito',
+      'KPIs de gestión: tasa de resolución, tiempo promedio, alertas atendidas',
+      'Evolución del IVF por municipio en el tiempo',
+      'Reportes exportables para ICBF, Defensoría y entes de control',
+      'Suscrito al evento ivf.calculado del bus'
+    ],
+    tech:'React + D3.js (frontend) · ClickHouse o AWS Redshift (backend)',
+    order:{num:4,label:'Panel básico en MVP; analítica avanzada en mes 5+'},
+    issues:[
+      {type:'warning',title:'Coordenadas geoespaciales — 100% inválidas',
+       body:'El proceso de limpieza descartó todas las coordenadas (0 de 60 válidas). Los datos tienen formatos mixtos: sexagesimal (3°36\'52.8"N 76°23\'16.1"W) y decimal mal formateado (-76,387,812). Una comisaría en Yumbo tiene longitud -72, que corresponde al oriente del país.'},
+      {type:'warning',title:'Solución requerida para el mapa de calor',
+       body:'Implementar parser DMS → decimal y validación de polígono del Valle del Cauca. Hasta que se corrijan las coordenadas, el mapa de calor territorial no puede renderizarse con datos precisos.'}
+    ]
+  },
+  'notif':{
+    eyebrow:'Servicio 6 de 6 · Mes 9+',eyebrowColor:'#34d974',
+    title:'Notificaciones',
+    desc:'Consumidor final del flujo de eventos. Entrega las alertas generadas por el Motor de alertas y produce reportes PDF para entes de control.',
+    resp:[
+      'Entrega de alertas por email a gestores y defensores',
+      'Push notifications a la app móvil',
+      'Generación de reportes PDF para ICBF y Defensoría',
+      'Suscrito a: alerta.generada, reporte.solicitado del bus'
+    ],
+    tech:'Node.js · SendGrid o AWS SES\nPuppeteer o WeasyPrint para generación de PDF',
+    order:{num:6,label:'Último en construirse — depende de todos los demás'},
+    issues:[]
+  },
+  'bus':{
+    eyebrow:'Infraestructura asíncrona',eyebrowColor:'#4a7ec4',
+    title:'Bus de eventos',
+    desc:'Desacopla los microservicios. Cuando se crea un expediente, el servicio de casos publica el evento y responde al cliente de inmediato. El Motor IVF y las alertas actúan en segundo plano sin bloquear la respuesta.',
+    resp:[
+      'caso.creado, caso.actualizado, caso.vinculado → Motor IVF + Motor de alertas',
+      'ivf.calculado → Panel analítico',
+      'alerta.generada → Notificaciones',
+      'reporte.solicitado → Notificaciones'
+    ],
+    tech:'RabbitMQ para el piloto en Cali (volumen moderado)\nMigrar a Kafka al escalar a nivel nacional (miles de eventos/día)',
+    order:null,issues:[]
+  },
+  'db-exp':{
+    eyebrow:'Persistencia — Gestión de casos',eyebrowColor:'#5a6880',
+    title:'DB Expedientes',
+    desc:'Base de datos relacional del servicio de Gestión de casos. Ningún otro servicio accede directamente aquí: toda comunicación es vía API o bus de eventos.',
+    resp:[
+      'expediente: datos maestros del caso, código SICOF, estado',
+      'parte: demandante, demandado, menores involucrados',
+      'tipo_proceso: alimentos / VIF / sustancias / hurto patrimonial',
+      'vinculacion_familiar: expedientes del mismo núcleo familiar',
+      'evento_procesal: historial de audiencias y actuaciones'
+    ],
+    tech:'PostgreSQL — datos relacionales con integridad referencial\nConsultas JOIN para vinculación automática de núcleos',
+    order:null,issues:[]
+  },
+  'db-pred':{
+    eyebrow:'Persistencia — Motor IVF',eyebrowColor:'#5a6880',
+    title:'DB Predicción',
+    desc:'Base de datos del Motor IVF. MongoDB almacena documentos semiestructurados que cambian con cada versión del modelo. Redis cachea predicciones activas para respuesta en milisegundos.',
+    resp:[
+      'MongoDB: feature vectors por expediente y núcleo familiar',
+      'MongoDB: historial de predicciones IVF con versión del modelo',
+      'Redis: caché de las últimas predicciones por expedienteId',
+      'TTL automático en Redis para mantener la caché fresca'
+    ],
+    tech:'MongoDB 6+ · Redis 7+\nEsquema flexible — cambia con cada versión del modelo',
+    order:null,issues:[]
+  },
+  'db-anal':{
+    eyebrow:'Persistencia — Panel analítico',eyebrowColor:'#5a6880',
+    title:'DB Analytics',
+    desc:'Base de datos columnar optimizada para consultas analíticas sobre millones de filas. Nunca recibe escrituras directas desde servicios transaccionales.',
+    resp:[
+      'Almacenamiento de eventos procesales para análisis histórico',
+      'Queries: GROUP BY municipio, tipo_proceso, mes para el mapa de calor',
+      'Materialización de KPIs para los dashboards institucionales',
+      'Solo escritura desde el bus de eventos, nunca desde servicios transaccionales'
+    ],
+    tech:'ClickHouse (recomendado para escala nacional)\nAWS Redshift como alternativa para el piloto inicial',
+    order:null,issues:[]
+  }
+};
+
+function show(id, el) {
+  const s = data[id];
+  if (!s) return;
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+
+  let html = '';
+
+  html += `<div style="color:${s.eyebrowColor};font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px">${s.eyebrow}</div>`;
+  html += `<div class="p-title">${s.title}</div>`;
+
+  if (s.order) {
+    html += `<div class="order-chip"><div class="order-num">${s.order.num}</div><span>${s.order.label}</span></div>`;
+  }
+
+  html += `<div class="p-section"><div class="p-label">Descripción</div><div class="p-body">${s.desc}</div></div>`;
+  html += `<div class="p-section"><div class="p-label">Responsabilidades</div><ul class="p-list">${s.resp.map(r=>`<li>${r}</li>`).join('')}</ul></div>`;
+  html += `<div class="p-section"><div class="p-label">Tecnología</div><div class="p-mono">${s.tech.replace(/\n/g,'<br>')}</div></div>`;
+
+  if (s.issues && s.issues.length) {
+    html += `<div class="p-section"><div class="p-label" style="color:#f59e0b">⚠ Problemas detectados</div>`;
+    s.issues.forEach(i => {
+      const cls = i.type === 'critical' ? 'issue-critical' : 'issue-warning';
+      html += `<div class="issue-box ${cls}"><div class="issue-title">${i.title}</div>${i.body}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('panel-body').innerHTML = html;
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+}
+</script>
+</body>
+</html>
