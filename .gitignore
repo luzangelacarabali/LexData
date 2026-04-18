@@ -1,5 +1,40 @@
+# Entornos virtuales
 env/
+venv/
+.venv/
+
+# Variables de entorno
 .env
 *.env
+
+# Archivos Jupyter notebooks (outputs)
+*.ipynb_checkpoints/
+.ipynb
+
+# Archivos Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos de datos locales (no versionar CSVs generados)
+data_judicial/*.csv
+
+# PDFs generados
+*.pdf
+
+# HTML generados
+*.html
+
+# Docs y planes
 docs/
 planes/
