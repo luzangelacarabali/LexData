@@ -1,0 +1,9 @@
+feature,label,importancia_pct
+apelacion,Con apelación (sí/no),44.67
+n_audiencias,Número de audiencias,42.28
+tipo_proceso_enc,Tipo de proceso,5.38
+carga_despacho,Carga del despacho,3.86
+ivf_score,IVF Score (vulnerabilidad),1.24
+municipio_enc,Municipio,0.9
+anio_radicacion,Año de radicación,0.86
+despacho_enc,Despacho asignado,0.81
