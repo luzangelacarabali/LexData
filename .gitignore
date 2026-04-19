@@ -27,7 +27,6 @@ __pycache__/
 Thumbs.db
 
 # Archivos de datos locales (no versionar CSVs generados)
-data_judicial/*.csv
 
 # PDFs generados
 *.pdf
