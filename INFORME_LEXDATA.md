@@ -415,8 +415,8 @@ streamlit run notebooks/lexdata_streamlit_app.py
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    FUENTES EXTERNAS                           │
-│  datos.gov.co (API Socrata)                                   │
+│                    FUENTES EXTERNAS                          │
+│  datos.gov.co (API Socrata)                                  │
 │  ├── INMLCF VIF Forense (ers2-kerr)           → 5,856 reg.   │
 │  ├── Policía SIEDCO (vuyt-mqpw, kmnf-h6r5)    → 0 reg.       │
 │  ├── Fiscalía Inasistencia (hf4m-4hbq)        → 3 reg.       │
@@ -425,29 +425,29 @@ streamlit run notebooks/lexdata_streamlit_app.py
 └───────────────────────┬──────────────────────────────────────┘
                         │ lexdata_scraping_nicho_familiar_v8.ipynb
                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│              data_judicial/ (7 archivos CSV)                   │
+┌───────────────────────────────────────────────────────────────┐
+│              data_judicial/ (7 archivos CSV)                  │
 │  ├── lexdata_vif_inmlcf.csv                                   │
 │  ├── lexdata_co_ocurrencia_IVF_v8.csv                         │
 │  ├── lexdata_ivf_resumen_municipios.csv                       │
 │  ├── lexdata_comisarias_directorio.csv                        │
 │  ├── lexdata_icbf_medidas.csv                                 │
 │  └── lexdata_inasistencia_alimentaria.csv                     │
-└───────────────────────┬──────────────────────────────────────┘
+└───────────────────────┬───────────────────────────────────────┘
                         │ lexdata_modelo_predictivo_demo.ipynb
                         ▼
-┌──────────────────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────────────────────┐
 │         OUTPUTS DEL MODELO                                    │
 │  ├── lexdata_expedientes_sinteticos.csv (5,000 registros)     │
 │  ├── lexdata_alertas_tempranas.csv (1,139 alertas)            │
 │  ├── modelo_regresion.pkl (XGBoost serializado)               │
 │  ├── feature_importance.csv                                   │
 │  └── 3 visualizaciones PNG (EDA, evaluación, features)        │
-└───────────────────────┬──────────────────────────────────────┘
+└───────────────────────┬───────────────────────────────────────┘
                         │ lexdata_streamlit_app.py
                         ▼
 ┌──────────────────────────────────────────────────────────────┐
-│              DASHBOARD INTERACTIVO (Streamlit)                 │
+│              DASHBOARD INTERACTIVO (Streamlit)               │
 │  Resumen · Mapa IVF · Alertas · Predictor · Análisis Juzgado │
 └──────────────────────────────────────────────────────────────┘
 ```
