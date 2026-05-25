@@ -6,10 +6,11 @@ venv/
 # Variables de entorno
 .env
 *.env
+Meeting Transcription.txt
 
-# Archivos Jupyter notebooks (outputs)
-*.ipynb_checkpoints/
-.ipynb
+# Archivos Jupyter notebooks (checkpoints)
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
 
 # Archivos Python
 __pycache__/
@@ -26,14 +27,15 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Archivos de datos locales (no versionar CSVs generados)
+# LaTeX aux files
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.toc
+*.lof
+*.lot
 
-# PDFs generados
-*.pdf
-
-# HTML generados
-*.html
-
-# Docs y planes
-docs/
-planes/
+# No ignoramos docs/ (contiene informe y readme)
+# No ignoramos *.pdf (queremos el paper)

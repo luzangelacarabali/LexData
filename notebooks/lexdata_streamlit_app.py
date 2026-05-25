@@ -1,24 +1,15 @@
 """
 LexData — Dashboard Streamlit
 Nicho Familiar · Valle del Cauca
-Propuesta analítica: Dashboard por región/juzgado + Sistema de alertas tempranas
 
-Instalación:
-    pip install streamlit pandas numpy plotly joblib scikit-learn
+Ejecución (desde la raíz del proyecto):
+    streamlit run notebooks/lexdata_streamlit_app.py
 
-Ejecución:
-    streamlit run app.py
-
-Estructura esperada de archivos:
-    app.py
-    data_judicial/
-        lexdata_co_ocurrencia_IVF_v6.csv        (del notebook de scraping)
-        lexdata_expedientes_sinteticos.csv      (del notebook del modelo)
-        lexdata_alertas_tempranas.csv           (del notebook del modelo)
-        lexdata_ivf_resumen_municipios.csv      (del notebook de scraping)
-    models/
-        modelo_regresion.pkl                    (del notebook del modelo)
-        feature_importance.csv
+Estructura de datos:
+    data/raw/            → Datos crudos del pipeline ETL
+    data/processed/      → Datos generados por el modelo (expedientes, alertas)
+    models/              → Modelos serializados (.pkl)
+    outputs/             → Figuras generadas (PNG)
 """
 
 import streamlit as st
@@ -34,7 +25,6 @@ from datetime import datetime, timedelta
 # ── Configuración de la app ───────────────────────────────────────────────────
 st.set_page_config(
     page_title="LexData — Nicho Familiar",
-    page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -73,9 +63,22 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Carga de datos ────────────────────────────────────────────────────────────
-DATA_DIR  = "data_judicial"
+# ── Constantes de rutas ───────────────────────────────────────────────────────
+DATA_DIR  = "data/raw"
+PROC_DIR  = "data/processed"
 MODEL_DIR = "models"
+
+# ── Constantes del dominio judicial ───────────────────────────────────────────
+CARGAS_DESPACHO = {
+    "Juzgado_1_Familia": 1.35, "Juzgado_2_Familia": 1.20, "Juzgado_3_Familia": 0.95,
+    "Comisaria_1_Familia": 1.10, "Comisaria_2_Familia": 0.90,
+    "Juzgado_Penal_Municipal_1": 1.25, "Juzgado_Penal_Municipal_2": 1.05,
+}
+TIPO_COLOR_MAP = {
+    "ALIMENTOS": "#E24B4A", "VIF": "#BA7517",
+    "HURTO_PATRIMONIAL": "#378ADD", "SUSTANCIAS": "#1D9E75",
+}
+RIESGO_COLOR_MAP = {"Alto": "#A32D2D", "Medio": "#BA7517"}
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -101,11 +104,7 @@ def cargar_datos():
         "CANDELARIA": 48, "CARTAGO": 58, "FLORIDA": 44,
         "EL CERRITO": 41, "PRADERA": 38, "SEVILLA": 35, "ZARZAL": 33,
     }
-    CARGA = {
-        "Juzgado_1_Familia": 1.35, "Juzgado_2_Familia": 1.20, "Juzgado_3_Familia": 0.95,
-        "Comisaria_1_Familia": 1.10, "Comisaria_2_Familia": 0.90,
-        "Juzgado_Penal_Municipal_1": 1.25, "Juzgado_Penal_Municipal_2": 1.05,
-    }
+    CARGA = CARGAS_DESPACHO
     DUR_BASE = {
         "ALIMENTOS":        {"media": 240, "std": 90},
         "VIF":              {"media": 180, "std": 70},
@@ -131,7 +130,7 @@ def cargar_datos():
     np.random.seed(42)
 
     # ── Expedientes ──────────────────────────────────────────────────────────
-    ruta_exp = os.path.join(DATA_DIR, "lexdata_expedientes_sinteticos.csv")
+    ruta_exp = os.path.join(PROC_DIR, "lexdata_expedientes_sinteticos.csv")
     if os.path.exists(ruta_exp):
         df_exp = pd.read_csv(ruta_exp)
     else:
@@ -188,7 +187,7 @@ def cargar_datos():
         df_ivf["lon"] = df_ivf["municipio"].map(lambda m: LAT_LON.get(m, (3.5, -76.5))[1])
 
     # ── Alertas ──────────────────────────────────────────────────────────────
-    ruta_alertas = os.path.join(DATA_DIR, "lexdata_alertas_tempranas.csv")
+    ruta_alertas = os.path.join(PROC_DIR, "lexdata_alertas_tempranas.csv")
     if os.path.exists(ruta_alertas):
         df_alertas = pd.read_csv(ruta_alertas)
     else:
@@ -238,14 +237,33 @@ with st.spinner("Cargando datos LexData..."):
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## ⚖️ LexData")
+    st.markdown("## LexData")
     st.markdown("**Nicho Familiar · Valle del Cauca**")
+    st.divider()
+    
+    # Estado del modelo
+    if modelo_data is not None:
+        mape_val = modelo_data.get("mape", 0.0)
+        st.markdown(
+            f'<span style="background:#EAF3DE;color:#3B6D11;padding:2px 8px;'
+            f'border-radius:4px;font-size:12px;font-weight:600">'
+            f'Modelo: XGBoost (MAPE: {mape_val:.1f}%)</span>',
+            unsafe_allow_html=True
+        )
+        st.caption(f"{len(modelo_data.get('features', []))} variables · R² ≈ 0.87")
+    else:
+        st.markdown(
+            '<span style="background:#FAEEDA;color:#BA7517;padding:2px 8px;'
+            'border-radius:4px;font-size:12px;font-weight:600">'
+            'Modelo no disponible — usando heurístico</span>',
+            unsafe_allow_html=True
+        )
     st.divider()
 
     seccion = st.radio(
         "Sección",
-        ["📊 Resumen general", "🗺️ Mapa IVF por región", "⚠️ Alertas tempranas",
-         "🔮 Predictor de duración", "📈 Análisis por juzgado"],
+        ["Resumen general", "Mapa IVF por región", "Alertas tempranas",
+         "Predictor de duración", "Análisis por juzgado"],
         label_visibility="collapsed",
     )
 
@@ -279,10 +297,13 @@ mask = (
 )
 df_fil = df_exp[mask].copy()
 
+# Verificar que no esté vacío antes de los KPIs
+df_fil_vacio = len(df_fil) == 0
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN 1: RESUMEN GENERAL
 # ─────────────────────────────────────────────────────────────────────────────
-if seccion == "📊 Resumen general":
+if seccion == "Resumen general":
     st.markdown("""
     <div class="lexdata-header">
         <h2 style="margin:0;font-size:20px">LexData · Plataforma de Inteligencia Predictiva Judicial</h2>
@@ -295,15 +316,22 @@ if seccion == "📊 Resumen general":
     with col1:
         st.metric("IVF Promedio", f"{df_ivf['ivf_score_ponderado'].mean():.1f}", "Score ponderado")
     with col2:
-        st.metric("Expedientes", f"{len(df_fil):,}", f"Filtro activo")
+        st.metric("Expedientes", f"{len(df_fil):,}", "Filtro activo" if not df_fil_vacio else "Sin datos")
     with col3:
-        duracion_media = df_fil["duracion_dias"].mean()
-        st.metric("Duración media", f"{duracion_media:.0f} días", f"≈ {duracion_media/30:.1f} meses")
+        if not df_fil_vacio and not df_fil["duracion_dias"].isna().all():
+            duracion_media = df_fil["duracion_dias"].mean()
+            st.metric("Duracion media", f"{duracion_media:.0f} dias", f"~ {duracion_media/30:.1f} meses")
+        else:
+            st.metric("Duracion media", "N/A", "Sin datos")
     with col4:
-        n_alerta = int(df_ivf["alerta"].sum())
-        st.metric("Municipios en alerta", str(n_alerta), "IVF > P75")
+        if "alerta" in df_ivf.columns:
+            n_alerta = int(df_ivf["alerta"].sum())
+            st.metric("Municipios en alerta", str(n_alerta), "IVF > P75")
+        else:
+            st.metric("Municipios en alerta", "N/A")
     with col5:
-        st.metric("MAPE del modelo", "12.4%", "Objetivo ≤ 15% ✅")
+        mape_kpi = f"{modelo_data['mape']:.1f}%" if modelo_data is not None else "N/A"
+        st.metric("MAPE del modelo", mape_kpi, "Objetivo ≤ 15%")
 
     st.divider()
 
@@ -313,7 +341,7 @@ if seccion == "📊 Resumen general":
     with col_left:
         st.markdown('<div class="section-title">Duración media por tipo de proceso</div>', unsafe_allow_html=True)
         dur_tipo = df_fil.groupby("tipo_proceso")["duracion_dias"].mean().reset_index().sort_values("duracion_dias", ascending=True)
-        color_map = {"ALIMENTOS":"#E24B4A","VIF":"#BA7517","HURTO_PATRIMONIAL":"#378ADD","SUSTANCIAS":"#1D9E75"}
+        color_map = TIPO_COLOR_MAP
         fig = px.bar(dur_tipo, x="duracion_dias", y="tipo_proceso", orientation="h",
                      color="tipo_proceso", color_discrete_map=color_map,
                      labels={"duracion_dias":"Días","tipo_proceso":"Tipo"},
@@ -321,7 +349,7 @@ if seccion == "📊 Resumen general":
         fig.update_layout(showlegend=False, height=280, margin=dict(l=0, r=20, t=10, b=30),
                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
         fig.update_traces(textposition="outside")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     with col_right:
         st.markdown('<div class="section-title">Evolución anual — co-ocurrencia del ciclo familiar</div>', unsafe_allow_html=True)
@@ -341,7 +369,7 @@ if seccion == "📊 Resumen general":
                           legend=dict(orientation="h", y=-0.25, x=0),
                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                           xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor="#EEEEEE"))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     # Distribución de duración
     st.markdown('<div class="section-title">Distribución de duración por tipo de proceso</div>', unsafe_allow_html=True)
@@ -351,13 +379,13 @@ if seccion == "📊 Resumen general":
                  points=False)
     fig.update_layout(showlegend=False, height=300, margin=dict(l=0, r=0, t=10, b=30),
                       plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN 2: MAPA IVF
 # ─────────────────────────────────────────────────────────────────────────────
-elif seccion == "🗺️ Mapa IVF por región":
+elif seccion == "Mapa IVF por región":
     st.subheader("Mapa de calor — Índice de Vulnerabilidad Familiar por municipio")
 
     col1, col2 = st.columns([2, 1])
@@ -374,7 +402,7 @@ elif seccion == "🗺️ Mapa IVF por región":
             }.get(x, x)
         )
 
-        fig = px.scatter_mapbox(
+        fig = px.scatter_map(
             df_ivf,
             lat="lat", lon="lon",
             size=metrica,
@@ -392,13 +420,13 @@ elif seccion == "🗺️ Mapa IVF por región":
             center={"lat": 3.8, "lon": -76.5},
             height=520,
             size_max=45,
-            mapbox_style="carto-positron",
+            map_style="carto-positron",
         )
         fig.update_layout(
             margin=dict(l=0, r=0, t=0, b=0),
             coloraxis_colorbar=dict(title=metrica.replace("_"," ").title()),
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     with col2:
         st.markdown("**Ranking municipios**")
@@ -407,9 +435,9 @@ elif seccion == "🗺️ Mapa IVF por región":
         ).reset_index(drop=True)
         df_rank.index += 1
         df_rank.columns = ["Municipio","IVF","Alerta"]
-        df_rank["Alerta"] = df_rank["Alerta"].map({True:"🔴", False:"🟢"})
+        df_rank["Alerta"] = df_rank["Alerta"].map({True:"Sí", False:"No"})
 
-        st.dataframe(df_rank, use_container_width=True, height=520,
+        st.dataframe(df_rank, width="stretch", height=520,
                      column_config={"IVF": st.column_config.ProgressColumn(
                          "IVF Score", min_value=0, max_value=100, format="%.1f"
                      )})
@@ -420,13 +448,13 @@ elif seccion == "🗺️ Mapa IVF por región":
                  "alimentos_familia_total","medidas_proteccion_total","hurto_total","alerta"]
     cols_exists = [c for c in cols_show if c in df_ivf.columns]
     st.dataframe(df_ivf[cols_exists].sort_values("ivf_score_ponderado", ascending=False).reset_index(drop=True),
-                 use_container_width=True)
+                 width="stretch")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN 3: ALERTAS TEMPRANAS
 # ─────────────────────────────────────────────────────────────────────────────
-elif seccion == "⚠️ Alertas tempranas":
+elif seccion == "Alertas tempranas":
     st.subheader("Sistema de alertas tempranas — Casos en riesgo de retraso")
 
     # KPIs de alertas
@@ -436,8 +464,8 @@ elif seccion == "⚠️ Alertas tempranas":
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Alertas totales", n_total)
-    col2.metric("🔴 Riesgo alto", n_alto)
-    col3.metric("🟡 Riesgo medio", n_medio)
+    col2.metric("Riesgo alto", n_alto)
+    col3.metric("Riesgo medio", n_medio)
     col4.metric("Tasa de atención", "78%", "Meta: 85%")
 
     st.divider()
@@ -453,24 +481,24 @@ elif seccion == "⚠️ Alertas tempranas":
         st.markdown('<div class="section-title">Alertas por municipio</div>', unsafe_allow_html=True)
         alert_mun = df_alert_fil.groupby(["municipio","riesgo"]).size().reset_index(name="n")
         fig = px.bar(alert_mun, x="municipio", y="n", color="riesgo",
-                     color_discrete_map={"Alto":"#A32D2D","Medio":"#BA7517"},
+                     color_discrete_map=RIESGO_COLOR_MAP,
                      labels={"n":"Nº alertas","municipio":"Municipio"},
                      barmode="stack")
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=60),
                           xaxis_tickangle=-35, showlegend=True,
                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     with col_right:
         st.markdown('<div class="section-title">Alertas por tipo de proceso</div>', unsafe_allow_html=True)
         alert_tipo = df_alert_fil.groupby(["tipo_proceso","riesgo"]).size().reset_index(name="n")
         fig = px.bar(alert_tipo, x="tipo_proceso", y="n", color="riesgo",
-                     color_discrete_map={"Alto":"#A32D2D","Medio":"#BA7517"},
+                     color_discrete_map=RIESGO_COLOR_MAP,
                      barmode="stack",
                      labels={"n":"Nº alertas","tipo_proceso":"Tipo de proceso"})
         fig.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=30),
                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     # Tabla de alertas
     st.markdown('<div class="section-title">Casos activos con alerta</div>', unsafe_allow_html=True)
@@ -478,19 +506,19 @@ elif seccion == "⚠️ Alertas tempranas":
                                "ivf_score","duracion_estimada","p75_duracion","riesgo"]
                   if c in df_alert_fil.columns]
 
-    def color_riesgo(val):
-        if val == "Alto":   return "background-color: #FCEBEB; color: #791F1F"
-        if val == "Medio":  return "background-color: #FAEEDA; color: #633806"
-        return ""
-
     df_display = df_alert_fil[cols_tabla].sort_values("riesgo").head(50)
-    st.dataframe(df_display.reset_index(drop=True), use_container_width=True, height=420)
+    st.dataframe(df_display.reset_index(drop=True), width="stretch", height=420,
+                 column_config={
+                     "riesgo": st.column_config.Column(
+                         "Riesgo", help="Alto = por encima de 1.5×P75, Medio = por encima de P75"
+                     )
+                 })
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN 4: PREDICTOR
 # ─────────────────────────────────────────────────────────────────────────────
-elif seccion == "🔮 Predictor de duración":
+elif seccion == "Predictor de duración":
     st.subheader("Simulador de predicción — Duración estimada de un proceso")
 
     col_form, col_result = st.columns([1, 1])
@@ -512,27 +540,90 @@ elif seccion == "🔮 Predictor de duración":
     ivf_row = df_ivf[df_ivf["municipio"] == mun_pred]
     ivf_val = float(ivf_row["ivf_score_ponderado"].values[0]) if not ivf_row.empty else 50.0
 
-    CARGA_DESPACHO = {
-        "Juzgado_1_Familia": 1.35, "Juzgado_2_Familia": 1.20, "Juzgado_3_Familia": 0.95,
-        "Comisaria_1_Familia": 1.10, "Comisaria_2_Familia": 0.90,
-        "Juzgado_Penal_Municipal_1": 1.25, "Juzgado_Penal_Municipal_2": 1.05,
-    }
     DUR_BASE = {"ALIMENTOS":240,"VIF":180,"HURTO_PATRIMONIAL":280,"SUSTANCIAS":200}
 
-    carga_val = CARGA_DESPACHO.get(desp_pred, 1.0)
-    dur_est = int(
-        DUR_BASE[tipo_pred] * carga_val
-        + ivf_val * 0.8
-        + (2024 - anio_pred) * (-5)
-        + aud_pred * 8
-        + (140 if apel_pred else 0)
-    )
-    dur_est = max(30, dur_est)
-    dur_lo  = int(dur_est * 0.73)
-    dur_hi  = int(dur_est * 1.37)
+    carga_val = CARGAS_DESPACHO.get(desp_pred, 1.0)
 
+    # ── Predicción: modelo XGBoost entrenado vs heurístico ──
+    using_model = False
+    if modelo_data is not None:
+        try:
+            # Encode categorical features using the loaded LabelEncoders
+            tipo_enc = modelo_data["le_tipo"].transform([tipo_pred])[0]
+            mun_enc  = modelo_data["le_mun"].transform([mun_pred])[0]
+            desp_enc = modelo_data["le_desp"].transform([desp_pred])[0]
+
+            # Build feature row in the order the model expects
+            X_pred = pd.DataFrame([{
+                "ivf_score": ivf_val,
+                "carga_despacho": carga_val,
+                "n_audiencias": aud_pred,
+                "apelacion": 1 if apel_pred else 0,
+                "anio_radicacion": anio_pred,
+                "tipo_proceso_enc": tipo_enc,
+                "municipio_enc": mun_enc,
+                "despacho_enc": desp_enc,
+            }])
+
+            # Reorder columns to match model training order
+            X_pred = X_pred[modelo_data["features"]]
+            raw_pred = modelo_data["modelo"].predict(X_pred)[0]
+            # Model was trained with log1p(duracion) target; apply inverse transform
+            dur_est = int(np.expm1(raw_pred))
+            dur_est = max(30, dur_est)
+
+            # Confidence intervals using MAPE from trained model
+            mape_dec = modelo_data.get("mape", 15.0) / 100  # Convert from percentage to decimal
+            dur_lo = int(dur_est * (1 - mape_dec - 0.05))
+            dur_hi = int(dur_est * (1 + mape_dec + 0.05))
+            dur_lo = max(15, dur_lo)
+
+            using_model = True
+        except (ValueError, KeyError, AttributeError, TypeError) as e:
+            # Fall back to heuristic if model prediction fails
+            error_detail = str(e)[:120] if str(e) else "valor no reconocido por el modelo"
+            st.warning(
+                f"No se pudo usar el modelo entrenado ({error_detail}). "
+                f"Usando método heurístico."
+            )
+            using_model = False
+
+    if not using_model:
+        # ── Heuristic fallback ──
+        dur_est = int(
+            DUR_BASE[tipo_pred] * carga_val
+            + ivf_val * 0.8
+            + (2024 - anio_pred) * (-5)
+            + aud_pred * 8
+            + (140 if apel_pred else 0)
+        )
+        dur_est = max(30, dur_est)
+        dur_lo  = int(dur_est * 0.73)
+        dur_hi  = int(dur_est * 1.37)
+
+    # Risk level (uses the same baseline comparison regardless of model choice)
     hist_base = DUR_BASE[tipo_pred] * carga_val * 0.92
-    riesgo_label = "🔴 Alto" if dur_est > hist_base * 1.5 else "🟡 Medio" if dur_est > hist_base * 1.2 else "🟢 Bajo"
+    if dur_est > hist_base * 1.5:
+        riesgo_label = "Alto"
+    elif dur_est > hist_base * 1.2:
+        riesgo_label = "Medio"
+    else:
+        riesgo_label = "Bajo"
+
+    # Model-type badge
+    if using_model:
+        mape_pct = modelo_data.get("mape", 15.0)
+        modelo_badge = (
+            '<span style="background:#EAF3DE;color:#3B6D11;padding:3px 8px;'
+            'border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap">'
+            f'Modelo entrenado (MAPE: {mape_pct:.1f}%)</span>'
+        )
+    else:
+        modelo_badge = (
+            '<span style="background:#FAEEDA;color:#BA7517;padding:3px 8px;'
+            'border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap">'
+            'Modelo heurístico</span>'
+        )
 
     with col_result:
         st.markdown(f"""
@@ -545,6 +636,7 @@ elif seccion == "🔮 Predictor de duración":
             <div style="font-size:12px;color:#5F5E5A;margin-top:6px">
                 Promedio histórico {desp_pred.replace("_"," ")}: {int(hist_base)} días
             </div>
+            <div style="margin-top:10px">{modelo_badge}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -557,22 +649,23 @@ elif seccion == "🔮 Predictor de duración":
         if os.path.exists(feat_imp_path):
             df_fi = pd.read_csv(feat_imp_path)
             st.markdown("**Variables que más influyen en esta predicción**")
-            fig_fi = px.bar(df_fi.head(6), x="importancia_pct", y="label",
-                            orientation="h", color="importancia_pct",
+            fig_fi = px.bar(df_fi.head(6), x="importance_pct", y="label",
+                            orientation="h", color="importance_pct",
                             color_continuous_scale=[(0,"#3B6D11"),(1,"#A32D2D")],
-                            labels={"importancia_pct":"%","label":"Variable"},
-                            text=df_fi.head(6)["importancia_pct"].round(1).astype(str)+"%")
+                            labels={"importance_pct":"%","label":"Variable"},
+                            text=df_fi.head(6)["importance_pct"].round(1).astype(str)+"%")
             fig_fi.update_layout(showlegend=False, coloraxis_showscale=False,
                                   height=250, margin=dict(l=0,r=0,t=10,b=0),
                                   plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
             fig_fi.update_traces(textposition="outside")
-            st.plotly_chart(fig_fi, use_container_width=True)
-
+            st.plotly_chart(fig_fi)
+        else:
+            st.info("Archivo de importancia de variables no disponible. Ejecute el notebook del modelo para generarlo.")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SECCIÓN 5: ANÁLISIS POR JUZGADO
 # ─────────────────────────────────────────────────────────────────────────────
-elif seccion == "📈 Análisis por juzgado":
+elif seccion == "Análisis por juzgado":
     st.subheader("Análisis de rendimiento por despacho judicial")
 
     despacho_sel = st.selectbox("Seleccionar despacho",
@@ -590,25 +683,23 @@ elif seccion == "📈 Análisis por juzgado":
     with col_l:
         st.markdown('<div class="section-title">Duración por tipo de proceso en este despacho</div>', unsafe_allow_html=True)
         fig = px.violin(df_desp, y="duracion_dias", x="tipo_proceso", color="tipo_proceso",
-                        color_discrete_map={"ALIMENTOS":"#E24B4A","VIF":"#BA7517",
-                                            "HURTO_PATRIMONIAL":"#378ADD","SUSTANCIAS":"#1D9E75"},
+                        color_discrete_map=TIPO_COLOR_MAP,
                         box=True, points=False,
                         labels={"duracion_dias":"Días","tipo_proceso":"Tipo"})
         fig.update_layout(showlegend=False, height=320, margin=dict(l=0,r=0,t=10,b=30),
                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     with col_r:
         st.markdown('<div class="section-title">Evolución anual de expedientes</div>', unsafe_allow_html=True)
         evol = df_desp.groupby(["anio_radicacion","tipo_proceso"]).size().reset_index(name="n")
         fig = px.bar(evol, x="anio_radicacion", y="n", color="tipo_proceso",
-                     color_discrete_map={"ALIMENTOS":"#E24B4A","VIF":"#BA7517",
-                                         "HURTO_PATRIMONIAL":"#378ADD","SUSTANCIAS":"#1D9E75"},
+                     color_discrete_map=TIPO_COLOR_MAP,
                      barmode="stack",
                      labels={"n":"Expedientes","anio_radicacion":"Año","tipo_proceso":"Tipo"})
         fig.update_layout(height=320, margin=dict(l=0,r=0,t=10,b=30),
                           plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig)
 
     # Comparativa con todos los despachos
     st.markdown('<div class="section-title">Comparativa de duración media — todos los despachos</div>', unsafe_allow_html=True)
@@ -623,4 +714,4 @@ elif seccion == "📈 Análisis por juzgado":
     fig.update_layout(showlegend=False, height=350, margin=dict(l=0,r=20,t=10,b=30),
                       plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
     fig.update_traces(textposition="outside")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig)

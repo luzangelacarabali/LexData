@@ -243,7 +243,7 @@ El proceso de extracción, transformación y carga se implementó en el notebook
 - **Extracción:** Conexión a la API Socrata de datos.gov.co mediante la librería `requests` de Python, con filtrado SOQL directamente en la API para evitar descargas masivas innecesarias.
 - **Resiliencia:** Paginación con mecanismo de retry y backoff exponencial. Diagnóstico automático de disponibilidad de datasets. Búsqueda automática de datasets alternativos cuando el ID primario no está disponible.
 - **Transformación:** Normalización de columnas mediante alias mapping. Cálculo del IVF ponderado con la fórmula compuesta descrita en la Sección 3.2.
-- **Carga:** Generación de 7 archivos CSV en el directorio `data_judicial/`.
+- **Carga:** Generación de 7 archivos CSV en `data/raw/` y `data/processed/`.
 
 ### 7.2 Modelo Predictivo
 
@@ -286,7 +286,7 @@ Metodología basada en percentiles (P75) por tipo de proceso:
 
 El análisis exploratorio se realizó sobre los 5,000 expedientes sintéticos generados y se presenta en un panel de cuatro gráficas:
 
-![Análisis Exploratorio — Distribución de Duración de Procesos Familiares](notebooks/data_judicial/eda_duracion_familiar.png)
+![Análisis Exploratorio — Distribución de Duración de Procesos Familiares](outputs/eda_duracion_familiar.png)
 
 *Figura 1. Panel EDA: (a) Distribución de duración por tipo de proceso, (b) Top municipios por volumen de casos, (c) Correlación entre IVF y duración del proceso, (d) Boxplot de duración por despacho judicial.*
 
@@ -314,7 +314,7 @@ Se entrenaron y evaluaron cuatro modelos de regresión. El modelo XGBoost fue se
 
 ### 9.2 Evaluación del Modelo Seleccionado
 
-![Evaluación del Modelo de Regresión](notebooks/data_judicial/evaluacion_modelo_regresion.png)
+![Evaluación del Modelo de Regresión](outputs/evaluacion_modelo_regresion.png)
 
 *Figura 2. Evaluación del modelo XGBoost: (a) Scatter plot de valores predichos vs. reales — la dispersión cercana a la diagonal indica buen ajuste general; (b) Histograma de distribución de errores — distribución aproximadamente normal centrada en cero.*
 
@@ -328,7 +328,7 @@ Se entrenaron y evaluaron cuatro modelos de regresión. El modelo XGBoost fue se
 
 ### 9.3 Importancia de Variables
 
-![Importancia de Variables — Feature Importance](notebooks/data_judicial/feature_importance.png)
+![Importancia de Variables — Feature Importance](outputs/feature_importance.png)
 
 *Figura 3. Importancia relativa de cada variable en el modelo XGBoost para la predicción de duración de procesos judiciales familiares.*
 
@@ -426,7 +426,7 @@ streamlit run notebooks/lexdata_streamlit_app.py
                         │ lexdata_scraping_nicho_familiar_v8.ipynb
                         ▼
 ┌───────────────────────────────────────────────────────────────┐
-│              data_judicial/ (7 archivos CSV)                  │
+│              data/raw/ (datos ETL) + outputs/ (figuras)      │
 │  ├── lexdata_vif_inmlcf.csv                                   │
 │  ├── lexdata_co_ocurrencia_IVF_v8.csv                         │
 │  ├── lexdata_ivf_resumen_municipios.csv                       │
@@ -456,7 +456,7 @@ streamlit run notebooks/lexdata_streamlit_app.py
 
 ```
 LexData/
-├── data_judicial/                          # Datos crudos del pipeline ETL
+├── data/raw/                             # Datos crudos del pipeline ETL
 │   ├── lexdata_vif_inmlcf.csv              # VIF INMLCF (5,857 filas)
 │   ├── lexdata_co_ocurrencia_IVF_v7.csv    # IVF v7 (66 filas)
 │   ├── lexdata_co_ocurrencia_IVF_v8.csv    # IVF v8 (187 filas)
@@ -469,7 +469,7 @@ LexData/
 │   ├── lexdata_scraping_nicho_familiar_v8.ipynb   # Pipeline ETL
 │   ├── lexdata_modelo_predictivo_demo.ipynb        # Modelo ML
 │   ├── lexdata_streamlit_app.py                    # Dashboard
-│   ├── data_judicial/                              # Outputs del modelo
+│   ├── data/processed/                          # Datos generados por el modelo
 │   │   ├── lexdata_expedientes_sinteticos.csv
 │   │   ├── lexdata_alertas_tempranas.csv
 │   │   ├── eda_duracion_familiar.png
