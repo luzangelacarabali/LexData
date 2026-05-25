@@ -39,3 +39,4 @@ Thumbs.db
 
 # No ignoramos docs/ (contiene informe y readme)
 # No ignoramos *.pdf (queremos el paper)
+notebooks/03_data_judicial/*.csv
