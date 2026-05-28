@@ -1,0 +1,8 @@
+feature,label,importance_pct
+apelacion,Con apelación,82.04
+tipo_proceso_enc,Tipo de proceso,9.58
+carga_despacho,Carga del despacho,4.43
+n_audiencias,Número de audiencias,2.03
+despacho_enc,Despacho asignado,1.22
+anio_radicacion,Año de radicación,0.7
+ivf_score,IVF Score Cali,0.0
