@@ -287,7 +287,7 @@ Bajo  → resto
 **Autores:** Luz Angela Carabali Mosquera · Nicolas Zapata Ocampo · Laura Daniela Astudillo  
 **Asignatura:** Data Thinking — 7.° Semestre  
 **Institución:** Universidad Autónoma de Occidente · Cali, Colombia  
-**Periodo:** 2025-1  
+**Periodo:** 2026-1  
 **Asesor:** Prof. Juan Manuel Núñez
 
 ---
