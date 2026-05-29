@@ -50,3 +50,8 @@ papel/*.fdb_latexmk
 papel/*.synctex.gz
 # NO ignorar main.pdf — queremos el PDF compilado en el repo
 !papel/main.pdf
+
+# Data pesada
+*.csv
+notebooks/03_data_judicial/*.csv
+notebooks/03_data_judicial/*.parquet
