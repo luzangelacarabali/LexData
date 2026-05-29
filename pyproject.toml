@@ -1,0 +1,98 @@
+[project]
+name = "lexdata"
+version = "0.2.0"
+description = "Plataforma de inteligencia predictiva para procesos judiciales de familia — Valle del Cauca"
+authors = [
+    { name = "Luz Angela Carabali Mosquera" },
+    { name = "Nicolas Zapata Ocampo" },
+    { name = "Laura Daniela Astudillo" },
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+# ── Dependencias principales ───────────────────────────────────────────────────
+dependencies = [
+    # Dashboard
+    "streamlit>=1.45.0",
+    "plotly>=6.0.0",
+
+    # Data
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+
+    # ML (ESTABLE para SHAP)
+    "scikit-learn>=1.4.0",
+    "xgboost>=1.7.6,<2.0.0",
+    "joblib>=1.3.0",
+
+    # Survival analysis
+    "lifelines>=0.29.0",
+
+    # DB / ETL
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.0",
+    "requests>=2.31.0",
+    "python-dotenv>=1.0.0",
+]
+
+# ── Dependencias opcionales ────────────────────────────────────────────────────
+[project.optional-dependencies]
+
+# SHAP compatible (evita conflictos con XGBoost)
+shap = [
+    "shap>=0.44.0,<0.46.0",
+]
+
+# Deep Learning
+dl = [
+    "torch>=2.2.0",
+]
+
+# Notebooks
+notebooks = [
+    "jupyter>=1.0.0",
+    "ipykernel>=6.29.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+]
+
+# DEV (CORREGIDO - sin recursividad)
+dev = [
+    "black>=24.0.0",
+    "ruff>=0.3.0",
+]
+
+
+# ── Comandos de entrada ────────────────────────────────────────────────────────
+[project.scripts]
+lexdata-dashboard = "lexdata.app:main"
+
+
+# ── Herramienta de build ───────────────────────────────────────────────────────
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+# ── Configuración uv ──────────────────────────────────────────────────────────
+[tool.uv]
+dev-dependencies = [
+    "black>=24.0.0",
+    "ruff>=0.3.0",
+]
+
+
+# ── Ruff (linter) ─────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+
+# ── Black (formatter) ─────────────────────────────────────────────────────────
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]

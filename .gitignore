@@ -1,42 +1,52 @@
-# Entornos virtuales
-env/
-venv/
+# ── Entornos virtuales ────────────────────────────────────────────────────────
 .venv/
-
-# Variables de entorno
+venv/
+env/
 .env
-*.env
-Meeting Transcription.txt
-
-# Archivos Jupyter notebooks (checkpoints)
-.ipynb_checkpoints/
-*/.ipynb_checkpoints/*
-
-# Archivos Python
 __pycache__/
 *.py[cod]
-*.egg-info/
+*.pyo
 
-# IDEs
+# ── uv ────────────────────────────────────────────────────────────────────────
+uv.lock
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Modelos serializados grandes (usar Git LFS o excluir) ────────────────────
+# Comentar estas líneas si quieres subir los modelos al repo
+# cuadernos/05_modelos_de_prediccion/models/*.pkl
+# cuadernos/05_modelos_de_prediccion/models/*.pt
+
+# ── Datos crudos (pueden ser grandes) ────────────────────────────────────────
+# data/raw/*.csv  # Descomentar si los CSVs son muy grandes
+
+# ── Sistema operativo ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
+# ── Build ─────────────────────────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
 
-# LaTeX aux files
-*.aux
-*.log
-*.bbl
-*.blg
-*.out
-*.toc
-*.lof
-*.lot
-
-# No ignoramos docs/ (contiene informe y readme)
-# No ignoramos *.pdf (queremos el paper)
-notebooks/03_data_judicial/*.csv
+# ── LaTeX (intermedios) ───────────────────────────────────────────────────────
+papel/*.aux
+papel/*.log
+papel/*.out
+papel/*.toc
+papel/*.bbl
+papel/*.blg
+papel/*.fls
+papel/*.fdb_latexmk
+papel/*.synctex.gz
+# NO ignorar main.pdf — queremos el PDF compilado en el repo
+!papel/main.pdf
