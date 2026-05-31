@@ -305,12 +305,13 @@ El análisis exploratorio se realizó sobre los 5,000 expedientes sintéticos ge
 
 Se entrenaron y evaluaron cuatro modelos de regresión. El modelo XGBoost fue seleccionado como el de mejor desempeño:
 
-| Modelo | MAPE | MAE (días) | R² |
-|--------|------|-----------|-----|
-| Ridge Regression | — | — | — |
-| Random Forest | — | — | — |
-| Gradient Boosting | — | — | — |
-| **XGBoost** | **16.0%** | **37** | **0.869** |
+| Modelo | MAPE | MAE (días) | R² | RMSE (días) |
+|--------|------|-----------|-----|-------------|
+| **XGBoost** | **11.6%** | **50.2** | **0.540** | **73.3** |
+| GBM | 11.7% | 50.5 | 0.542 | 73.2 |
+| Ridge | 12.7% | 55.6 | 0.437 | 81.2 |
+| ResidualMLP (DL) | 12.9% | 57.8 | 0.483 | 77.8 |
+| Lasso | 18.9% | 88.1 | -0.020 | 109.2 |
 
 ### 9.2 Evaluación del Modelo Seleccionado
 
