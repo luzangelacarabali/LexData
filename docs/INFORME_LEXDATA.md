@@ -411,6 +411,8 @@ streamlit run notebooks/lexdata_streamlit_app.py
 
 ## 13. Arquitectura del Sistema
 
+El código fuente del proyecto está disponible públicamente en: https://github.com/luzangelacarabali/LexData
+
 ### 13.1 Flujo de Datos
 
 ```
